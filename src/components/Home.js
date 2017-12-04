@@ -2,18 +2,24 @@ import React from 'react';
 import {Tabs, Spin} from 'antd';
 import $ from 'jquery';
 import {Gallery} from "./Gallery"
+import {CreatePostButton} from "./CreatePostButton"
 import {API_ROOT, AUTH_PREFIX, GEO_OPTIONS, POS_KEY, TOKEN_KEY} from '../constants'
 
 
 const TabPane = Tabs.TabPane;
+
+
 export class Home extends React.Component {
     state = {
         posts:[],
         error : '',
         loadingGeoLocation: false,
         loadingPosts: false,
-
     }
+    onTabChange = (key) => {
+        console.log(key);
+    }
+
     componentDidMount() {
         if ("geolocation" in navigator) {
             this.setState({loadingGeoLocation:true, error:''});
@@ -22,12 +28,11 @@ export class Home extends React.Component {
                 this.onFailedLoadGeoLocation,
                 GEO_OPTIONS,
             );
-            this.loadNearbyPosts();
         } else {
             this.setState({error : "geo location not supported"});
+            //const {lat, lon} = {"lat":37.5629917, "lon":-122.3255253999999}
+
         }
-
-
     }
 
     onSuccessLoadGeoLocation = (position) => {
@@ -35,6 +40,7 @@ export class Home extends React.Component {
         const {latitude: lat, longitude: lon} = position.coords;
         localStorage.setItem(POS_KEY, JSON.stringify({lat: lat, lon:lon}));
         console.log(position);
+        this.loadNearbyPosts();
     }
 
     onFailedLoadGeoLocation = (error) => {
@@ -51,7 +57,7 @@ export class Home extends React.Component {
         } else if (this.state.loadingPosts) {
                 // Show spinner
                 return <Spin tip="Loading posts ..." size={"large"}/>
-            } else if (this.state.posts.length > 0) {
+            } else if (this.state.posts) {
                 // Show gallery
                 const images = this.state.posts.map((post) => {
                     return {
@@ -65,40 +71,38 @@ export class Home extends React.Component {
 
                 });
                 console.log(images);
-                return <Gallery images={images}/>;
+                return (<Gallery images={images}/>);
             }
-        return;
+        return null;
     }
 
     loadNearbyPosts = () => {
-        //const {lat, lon} = JSON.parse (localStorage.getItem(POS_KEY));
-        const {lat, lon} = {"lat":37.5629917, "lon":-122.3255253999999}
-        console.log ( {
-            Authorization: `${AUTH_PREFIX} ${localStorage.getItem(TOKEN_KEY)}`
-        });
-        this.setState({loadingPosts:true});
-        $.ajax({
-            url:`${API_ROOT}/search?lat=${lat}&lon=${lon}&range=20`,
+        const { lat, lon } = JSON.parse(localStorage.getItem(POS_KEY));
+        this.setState({ loadingPosts: true });
+        return $.ajax({
+            url: `${API_ROOT}/search?lat=${lat}&lon=${lon}&range=20`,
             method: 'GET',
             headers: {
-                'Authorization': `${AUTH_PREFIX} ${localStorage.getItem(TOKEN_KEY)}`
+                Authorization: `${AUTH_PREFIX} ${localStorage.getItem(TOKEN_KEY)}`,
             },
         }).then((response) => {
-                console.log(response);
-                this.setState({posts : response, loadingPosts:false , error:''});
-            },
-            (error) => {
-                this.setState({error: error.responseText, loadingPosts:false});
-            }
-            ).catch((error) => {this.setState({error : error})});
+            this.setState({ posts: response, error: '' });
+            console.log(response);
+        }, (error) => {
+            this.setState({ error: error.responseText });
+        }).then(() => {
+            this.setState({ loadingPosts: false });
+        }).catch((error) => {
+            console.log(error);
+        });
     }
-    render() {
 
-        //const createPostButton = <CreatePostButton loadNearbyPosts={this.loadNearbyPosts}/>;
+    render() {
+        const createPostButton = <CreatePostButton loadNearbyPosts={this.loadNearbyPosts}/>;
         return (
             <Tabs
                 onChange={this.onTabChange}
-                //tabBarExtraContent={createPostButton}
+                tabBarExtraContent={createPostButton}
                 className="main-tabs"
             >
                 <TabPane tab="Posts" key="1">
