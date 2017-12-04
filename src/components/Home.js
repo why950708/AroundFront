@@ -1,6 +1,7 @@
 import React from 'react';
 import {Tabs, Spin} from 'antd';
 import $ from 'jquery';
+import {Gallery} from "./Gallery"
 import {API_ROOT, AUTH_PREFIX, GEO_OPTIONS, POS_KEY, TOKEN_KEY} from '../constants'
 
 
@@ -50,6 +51,21 @@ export class Home extends React.Component {
         } else if (this.state.loadingPosts) {
                 // Show spinner
                 return <Spin tip="Loading posts ..." size={"large"}/>
+            } else if (this.state.posts.length > 0) {
+                // Show gallery
+                const images = this.state.posts.map((post) => {
+                    return {
+                        user: post.user,
+                        src: post.url,
+                        thumbnail: post.url,
+                        thumbnailWidth: 400,
+                        thumbnailHeight: 300,
+                        caption: post.message,
+                    };
+
+                });
+                console.log(images);
+                return <Gallery images={images}/>;
             }
         return;
     }
@@ -58,7 +74,7 @@ export class Home extends React.Component {
         //const {lat, lon} = JSON.parse (localStorage.getItem(POS_KEY));
         const {lat, lon} = {"lat":37.5629917, "lon":-122.3255253999999}
         console.log ( {
-            Authorization: `${AUTH_PREFIX}${localStorage.getItem(TOKEN_KEY)}`
+            Authorization: `${AUTH_PREFIX} ${localStorage.getItem(TOKEN_KEY)}`
         });
         this.setState({loadingPosts:true});
         $.ajax({
@@ -69,13 +85,12 @@ export class Home extends React.Component {
             },
         }).then((response) => {
                 console.log(response);
-                this.setState({posts : response, loadingPosts:false});
+                this.setState({posts : response, loadingPosts:false , error:''});
             },
             (error) => {
                 this.setState({error: error.responseText, loadingPosts:false});
             }
             ).catch((error) => {this.setState({error : error})});
-
     }
     render() {
 
